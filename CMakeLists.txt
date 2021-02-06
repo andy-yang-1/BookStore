@@ -3,7 +3,7 @@ project(code)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Bookstore_2021_main
+add_executable(code
         src/main.cpp
         src/all_command.cpp
         src/unrolled_linked_list.cpp
