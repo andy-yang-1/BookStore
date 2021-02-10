@@ -47,6 +47,10 @@ public:
 
     void check_existing_ISBN( book temp_book ) ;
 
+    void check_num() ;
+
+    void check_repeated_keyword( string line ) ;
+
     void SU() ;
 
     void LOGOUT() ;

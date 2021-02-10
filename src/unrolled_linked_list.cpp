@@ -12,7 +12,7 @@ void List::add_key(element &add_element, pair<bool, pair<int, int>> search_pos)
 {
     block temp_block ;
     temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;
-//    if ( search_pos.first == 1 ) cerr << "add_key: existing key" << endl ;
+    if ( search_pos.first == 1 ) cerr << "add_key: existing key" << endl ;
 
     for ( int i = temp_block.length ; i > search_pos.second.second ; i-- ){
         temp_block.data[i] = temp_block.data[i-1] ;
@@ -30,7 +30,7 @@ void List::add_key(element &add_element, pair<bool, pair<int, int>> search_pos)
 void List::del_key(pair<bool, pair<int, int>> search_pos)
 {
     block temp_block , nxt_block ;
-    temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;
+    temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;  // todo get_block函数在读取时出现异常
 
     for ( int i = search_pos.second.second ; i < temp_block.length ; i++ ){
         temp_block.data[i] = temp_block.data[i+1] ;
@@ -155,7 +155,14 @@ void List::show_key(key_type KeyType, const char *main_key)
     pair< bool , pair<int,int> > start_pos = search_key(KeyType,searched_element) ;
     block temp_block ;
     temp_block.get_block(KeyType,start_pos.second.first) ;
-    if ( !temp_block.data[start_pos.second.second].equal_with(searched_element) ) cout << endl ; // 空show
+    if ( !temp_block.data[start_pos.second.second].equal_with(searched_element) ){
+        if ( start_pos.second.second == temp_block.length && temp_block.down != -1 ){
+            temp_block.get_block(KeyType,temp_block.down) ;
+            if ( temp_block.data[0].equal_with(searched_element) ){
+                start_pos.second.second = 0 ;
+            }else{ cout << endl ; return ;}
+        }else{ cout << endl ; return ; }
+    }// todo 在 complexTest2 2.in 91行输入出现了无端空行
     int start_point = start_pos.second.second , offset ;
     book temp_book ;
     while (true){

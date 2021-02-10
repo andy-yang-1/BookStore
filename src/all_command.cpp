@@ -64,6 +64,18 @@ int command::select_offset()
     return select_stack[select_stack.size()-1] ;
 }
 
+void command::check_num()
+{
+    int p = command_stream.tellg() ;
+    string temp ;
+    command_stream >> temp ;
+    for ( int i = 0 ; i < temp.length() ; i++ ){
+        if ( ( temp[i] < '0' || temp[i] > '9' ) && temp[i] != '.' ) throw invalid_argument("check_num: need number") ;
+    }
+    command_stream.clear() ;
+    command_stream.seekg(p) ;
+}
+
 void command::SU()
 {
     check_privilege(0) ;
@@ -110,7 +122,7 @@ void command::USERADD()
 
     if ( !has_more_token() ) throw invalid_argument("useradd: need id") ; command_stream >> id ;
     if ( !has_more_token() ) throw invalid_argument("useradd: need pw") ; command_stream >> pw ;
-    if ( !has_more_token() ) throw invalid_argument("useradd: need p") ; command_stream >> p ;
+    if ( !has_more_token() ) throw invalid_argument("useradd: need p") ; check_num() ; command_stream >> p ;
     if ( !has_more_token() ) throw invalid_argument("useradd: need n") ; command_stream >> n ;
     check_privilege(p+1) ; if ( p == 0 ) throw invalid_argument("useradd: no zero privilege") ;
 
@@ -222,11 +234,11 @@ void command::del_name()
 void command::del_author()
 {
     book temp_book ;
-    List name_list(NAME_FILE) ;
+    List author_list(AUTHOR_FILE) ;
     temp_book.get_book(select_offset()) ;
     element author_element( temp_book.author , temp_book.ISBN , 0 ) ; pair< bool , pair<int,int> > search_pos ;
-    search_pos = name_list.search_key(AUTHOR_TYPE,author_element) ;
-    name_list.del_key(search_pos) ;
+    search_pos = author_list.search_key(AUTHOR_TYPE,author_element) ;
+    author_list.del_key(search_pos) ;
 }
 
 void command::del_keyword()
@@ -330,6 +342,25 @@ void command::check_existing_ISBN(book temp_book)
     if ( search_pos.first == 1 ) throw invalid_argument("modify: modify existing ISBN") ;
 }
 
+void command::check_repeated_keyword(string line)
+{
+    vector<string> checker ;
+    stringstream temp_stream ;
+    string token ;
+    temp_stream << line ;
+    int counter = get_strip(line) ;
+    if ( counter == 0 ) return ;
+
+    for ( int i = 0 ; i < counter ; i++ ){
+        getline(temp_stream,token,'|') ;
+        for ( int j = 0 ; j < checker.size() ; j++ ){
+            if ( token == checker[j] ) throw invalid_argument("check_repeated_keyword: repeated keyword") ;
+        }
+        checker.push_back(token) ;
+    } temp_stream >> token ;
+    for ( int i = 0 ; i < checker.size() ; i++ ) if ( token == checker[i] ) throw invalid_argument("check_repeated_keyword: repeated keyword") ;
+}
+
 void command::MODIFY()
 {
     check_selected() ;
@@ -350,6 +381,7 @@ void command::MODIFY()
     }
     real_book.get_book(select_offset()) ;
     temp_book.quantity = real_book.quantity ;
+    if ( keyword_m ) check_repeated_keyword(temp_book.keyword) ;
 
     if ( !isbn_m ) strcpy( temp_book.ISBN , real_book.ISBN ) ;
     if ( !name_m ) strcpy( temp_book.name , real_book.name ) ;
@@ -390,8 +422,8 @@ void command::IMPORT()
     temp_book.get_book(select_offset()) ;
     int import_quantity = 0 ;
     double all_cost = 0 ;
-    if ( !has_more_token() ) throw invalid_argument("import: need quantity") ; command_stream >> import_quantity ;
-    if ( !has_more_token() ) throw invalid_argument("import: need cost") ; command_stream >> all_cost ;
+    if ( !has_more_token() ) throw invalid_argument("import: need quantity") ; check_num() ; command_stream >> import_quantity ;
+    if ( !has_more_token() ) throw invalid_argument("import: need cost") ; check_num() ; command_stream >> all_cost ;
     temp_book.quantity += import_quantity ;
     temp_book.put_book(select_offset()) ;
     change_finance( -all_cost ) ;
@@ -404,7 +436,7 @@ void command::BUY()
     List ISBN_list(ISBN_FILE) ;
     int all_quantity = 0 ;
     if ( !has_more_token() ) throw invalid_argument("buy: need isbn") ; command_stream >> temp_book.ISBN ;
-    if ( !has_more_token() ) throw invalid_argument("buy: need quantity") ; command_stream >> all_quantity ;
+    if ( !has_more_token() ) throw invalid_argument("buy: need quantity") ; check_num() ; command_stream >> all_quantity ;
     element ISBN_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = ISBN_list.search_key(ISBN_TYPE,ISBN_element) ;
     if ( search_pos.first == 0 ) throw invalid_argument("buy: no such book") ;
@@ -429,6 +461,7 @@ void command::SHOW()
     command_stream >> line ;
 
     if ( line == "finance" ){
+        check_privilege(7) ;
         int times = -1 ;
         if ( has_more_token() ) command_stream >> times ;
         print_finance(times) ;

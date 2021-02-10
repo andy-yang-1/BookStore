@@ -171,17 +171,17 @@ element &element::operator=(const element &other)
 
 bool element::operator<(const element &other)
 {
-    if ( strcmp( keyword_main , other.keyword_main ) == -1 ) return true ;
+    if ( strcmp( keyword_main , other.keyword_main ) < 0 ) return true ;
     if ( strcmp( keyword_main , other.keyword_main ) == 0 ){
-        return ( strcmp( keyword_auxiliary , other.keyword_auxiliary ) == -1 ) ;
+        return ( strcmp( keyword_auxiliary , other.keyword_auxiliary ) < 0 ) ;
     }else return false ;
 }
 
 bool element::operator<(const block &other)
 {
-    if ( strcmp( keyword_main , other.data[0].keyword_main ) == -1 ) return true ;
+    if ( strcmp( keyword_main , other.data[0].keyword_main ) < 0 ) return true ;
     if ( strcmp( keyword_main , other.data[0].keyword_main ) == 0 ){
-        return ( strcmp( keyword_auxiliary , other.data[0].keyword_auxiliary ) == -1 ) ;
+        return ( strcmp( keyword_auxiliary , other.data[0].keyword_auxiliary ) < 0 ) ;
     }else return false ;
 }
 

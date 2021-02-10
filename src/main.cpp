@@ -10,6 +10,8 @@ int main()
 {
     file_initialize() ;
 
+//    freopen( "../../../data_out.txt" , "w" , stdout ) ;
+
     while (true){
         try{
             getline(cin,command_line) ;
