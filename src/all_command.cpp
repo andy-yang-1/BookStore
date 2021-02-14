@@ -85,9 +85,9 @@ void command::SU()
 
     char id[31] = {0} , pw[31] = {0} ;
     command_stream >> id ;
-    element id_element(id,id,0) ; pair< int , pair<int,int> > search_pos ;
-    search_pos = user_list.search_key(USER_ID_TYPE,id_element) ;  // todo 一共读了三次block，优化成一次
-    if ( search_pos.first == -1 ) throw invalid_argument("su: no such user") ;
+    element id_element(id,id,0) ; pair< bool , pair<int,int> > search_pos ;
+    search_pos = user_list.search_key(USER_ID_TYPE,id_element) ;
+    if ( search_pos.first == 0 ) throw invalid_argument("su: no such user") ;
 
     int offset = user_list.get_key(search_pos) ;
     temp_user.get_user(offset) ;
@@ -126,9 +126,9 @@ void command::USERADD()
     if ( !has_more_token() ) throw invalid_argument("useradd: need n") ; command_stream >> n ;
     check_privilege(p+1) ; if ( p == 0 ) throw invalid_argument("useradd: no zero privilege") ;
 
-    element id_element( id , id , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element id_element( id , id , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = user_list.search_key(USER_ID_TYPE,id_element) ;
-    if ( search_pos.first != -1 ) throw invalid_argument("useradd: existing user") ;
+    if ( search_pos.first == 1 ) throw invalid_argument("useradd: existing user") ;
 
     user new_user(id,pw,n,p) ;
     id_element.offset = add_user(new_user) ;
@@ -145,9 +145,9 @@ void command::REGISTER()
     if ( !has_more_token() ) throw invalid_argument("register: need n") ; command_stream >> n ;
     if ( has_more_token() ) throw invalid_argument("register: too many token") ;
 
-    element id_element( id , id , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element id_element( id , id , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = user_list.search_key(USER_ID_TYPE,id_element) ;
-    if ( search_pos.first != -1 ) throw invalid_argument("register: existing user") ;
+    if ( search_pos.first == 1 ) throw invalid_argument("register: existing user") ;
 
     user new_user(id,pw,n,1) ;
     id_element.offset = add_user(new_user) ;
@@ -166,9 +166,9 @@ void command::DELETE()
         if ( temp_user == user_stack[i] ) throw invalid_argument("delete: logging user") ;
     }
 
-    element id_element( id , id , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element id_element( id , id , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = user_list.search_key( USER_ID_TYPE , id_element ) ;
-    if ( search_pos.first == -1 ) throw invalid_argument("delete: no existing user") ;
+    if ( search_pos.first == 0 ) throw invalid_argument("delete: no existing user") ;
 
     user_list.del_key(search_pos) ;
 
@@ -186,9 +186,9 @@ void command::PASSWD()
         strcpy( n_pw , pw ) ;
     } command_stream >> n_pw ;
 
-    element id_element( id , id , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element id_element( id , id , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = user_list.search_key( USER_ID_TYPE , id_element ) ;
-    if ( search_pos.first == -1 ) throw invalid_argument("passwd: no existing user") ;
+    if ( search_pos.first == 0 ) throw invalid_argument("passwd: no existing user") ;
 
     int offset = user_list.get_key(search_pos) ;
     user temp_user ;
@@ -208,19 +208,17 @@ void command::SELECT()
     char isbn[61] = {0} ;
     if ( !has_more_token() ) throw invalid_argument("select: need ISBN") ; command_stream >> isbn ;
 
-    element isbn_element( isbn , isbn , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element isbn_element( isbn , isbn , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     List book_list(ISBN_FILE) ;
     search_pos = book_list.search_key( ISBN_TYPE , isbn_element ) ;
 
     book temp_book(isbn) ;
-    if ( search_pos.first == -1 ){
+    if ( search_pos.first == 0 ){
         isbn_element.offset = add_book(temp_book) ;
         book_list.add_key(isbn_element,search_pos) ;
-        select_stack[select_stack.size()-1] = isbn_element.offset ;
-    }else{
-        int offset = book_list.get_key(search_pos);
-        select_stack[select_stack.size() - 1] = offset;
     }
+    int offset = book_list.get_key(search_pos) ;
+    select_stack[select_stack.size()-1] = offset ;
 }
 
 void command::del_name()
@@ -228,7 +226,7 @@ void command::del_name()
     book temp_book ;
     List name_list(NAME_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element name_element(temp_book.name,temp_book.ISBN,0) ; pair< int , pair<int,int> > search_pos ;
+    element name_element(temp_book.name,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = name_list.search_key(NAME_TYPE,name_element) ;
     name_list.del_key(search_pos) ;
 }
@@ -238,7 +236,7 @@ void command::del_author()
     book temp_book ;
     List author_list(AUTHOR_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element author_element( temp_book.author , temp_book.ISBN , 0 ) ; pair< int , pair<int,int> > search_pos ;
+    element author_element( temp_book.author , temp_book.ISBN , 0 ) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = author_list.search_key(AUTHOR_TYPE,author_element) ;
     author_list.del_key(search_pos) ;
 }
@@ -252,7 +250,7 @@ void command::del_keyword()
 
     int counter = get_strip( keyword_sequence ) ;
     stringstream temp_stream , change_to_char_stream ;
-    element keyword_element(temp_book.keyword,temp_book.ISBN,0) ; pair< int , pair<int,int> > search_pos ;
+    element keyword_element(temp_book.keyword,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     temp_stream << keyword_sequence ;
 
     for ( int i = 0 ; i < counter ; i++ ){
@@ -275,7 +273,7 @@ void command::del_ISBN()
     book temp_book ;
     List ISBN_list(ISBN_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element ISBN_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< int , pair<int,int> > search_pos ;
+    element ISBN_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = ISBN_list.search_key(ISBN_TYPE,ISBN_element) ;
     ISBN_list.del_key(search_pos) ;
 }
@@ -285,7 +283,7 @@ void command::add_ISBN()
     book temp_book ;
     List ISBN_list(ISBN_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element ISBN_element(temp_book.ISBN,temp_book.ISBN,select_offset()) ; pair< int , pair<int,int> > search_pos ;
+    element ISBN_element(temp_book.ISBN,temp_book.ISBN,select_offset()) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = ISBN_list.search_key(ISBN_TYPE,ISBN_element) ;
     ISBN_list.add_key(ISBN_element,search_pos) ;
 }
@@ -295,7 +293,7 @@ void command::add_name()
     book temp_book ;
     List name_list(NAME_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element name_element(temp_book.name,temp_book.ISBN,select_offset()) ; pair< int , pair<int,int> > search_pos ;
+    element name_element(temp_book.name,temp_book.ISBN,select_offset()) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = name_list.search_key(NAME_TYPE,name_element) ;
     name_list.add_key(name_element,search_pos) ;
 }
@@ -305,7 +303,7 @@ void command::add_author()
     book temp_book ;
     List author_list(AUTHOR_FILE) ;
     temp_book.get_book(select_offset()) ;
-    element author_element(temp_book.author,temp_book.ISBN,select_offset()) ; pair< int , pair<int,int> > search_pos ;
+    element author_element(temp_book.author,temp_book.ISBN,select_offset()) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = author_list.search_key(AUTHOR_TYPE,author_element) ;
     author_list.add_key(author_element,search_pos) ;
 }
@@ -319,7 +317,7 @@ void command::add_keyword()
 
     int counter = get_strip(keyword_sequence) ;
     stringstream temp_stream , change_to_char_stream ;
-    element keyword_element(temp_book.keyword,temp_book.ISBN,select_offset()) ; pair< int , pair<int,int> > search_pos ;
+    element keyword_element(temp_book.keyword,temp_book.ISBN,select_offset()) ; pair< bool , pair<int,int> > search_pos ;
     temp_stream << keyword_sequence ;
 
     for ( int i = 0 ; i < counter ; i++ ){
@@ -338,12 +336,10 @@ void command::add_keyword()
 
 void command::check_existing_ISBN(book temp_book)
 {
-    element isbn_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< int , pair<int,int> > search_pos ;
+    element isbn_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     List ISBN_list(ISBN_FILE) ;
     search_pos = ISBN_list.search_key(ISBN_TYPE,isbn_element) ;
-    if ( search_pos.first != -1 ) throw invalid_argument("modify: modify existing ISBN") ;
-    isbn_element.offset = select_offset() ;
-    ISBN_list.add_key(isbn_element,search_pos) ;
+    if ( search_pos.first == 1 ) throw invalid_argument("modify: modify existing ISBN") ;
 }
 
 void command::check_repeated_keyword(string line)
@@ -395,7 +391,7 @@ void command::MODIFY()
 
     if ( isbn_m ){
         this->check_existing_ISBN(temp_book) ;
-        del_ISBN() ; // todo check_existing_ISBN和add_ISBN优化成一次
+        del_ISBN() ;
         if ( real_book.has_author() ) del_author() ;
         if ( real_book.has_name() ) del_name() ;
         if ( real_book.has_keyword() ) del_keyword() ;
@@ -408,7 +404,7 @@ void command::MODIFY()
     temp_book.put_book(select_offset()) ;
 
     if ( isbn_m ){
-//        add_ISBN() ; // todo 把add_ISBN优化掉
+        add_ISBN() ;
         if ( temp_book.has_name() ) add_name() ;
         if ( temp_book.has_author() ) add_author() ;
         if ( temp_book.has_keyword() ) add_keyword() ;
@@ -441,9 +437,9 @@ void command::BUY()
     int all_quantity = 0 ;
     if ( !has_more_token() ) throw invalid_argument("buy: need isbn") ; command_stream >> temp_book.ISBN ;
     if ( !has_more_token() ) throw invalid_argument("buy: need quantity") ; check_num() ; command_stream >> all_quantity ;
-    element ISBN_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< int , pair<int,int> > search_pos ;
+    element ISBN_element(temp_book.ISBN,temp_book.ISBN,0) ; pair< bool , pair<int,int> > search_pos ;
     search_pos = ISBN_list.search_key(ISBN_TYPE,ISBN_element) ;
-    if ( search_pos.first == -1 ) throw invalid_argument("buy: no such book") ;
+    if ( search_pos.first == 0 ) throw invalid_argument("buy: no such book") ;
 
     int offset = ISBN_list.get_key(search_pos) ;
     temp_book.get_book(offset) ;
@@ -465,7 +461,7 @@ void command::SHOW()
     command_stream >> line ;
 
     if ( line == "finance" ){
-        check_privilege(7) ;
+    	check_privilege(7) ;
         int times = -1 ;
         if ( has_more_token() ) command_stream >> times ;
         print_finance(times) ;

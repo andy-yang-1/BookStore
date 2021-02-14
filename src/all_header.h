@@ -12,8 +12,8 @@
 #define KEYWORD_FILE "keyword_file.dat"
 #define FINANCE_FILE "finance_file.dat"
 #define CORE_FILE "core_file.dat"
-#define BLOCK_SIZE 320
-#define MERGE_LIMIT 160
+#define BLOCK_SIZE 320 
+#define MERGE_LIMIT 160 
 
 #include <fstream>
 #include <iostream>
@@ -25,13 +25,13 @@ enum element_type { BOOK_TYPE , USER_TYPE }; // 两种元素类型
 
 enum key_type { USER_ID_TYPE , ISBN_TYPE , NAME_TYPE , AUTHOR_TYPE , KEYWORD_TYPE , PRICE_TYPE };
 
-int get_block_num( key_type KeyType ) ; // todo 用add_block函数代替
+int get_block_num( key_type KeyType ) ;
 
-void change_block_num( key_type KeyType , int num ) ; // todo 不需要block_num的统计
+void change_block_num( key_type KeyType , int num ) ;
 
-int get_element_num( element_type ElementType ) ; // todo 干脆不再使用
+int get_element_num( element_type ElementType ) ;
 
-void change_element_num( element_type ElementType , int num ) ; // todo 干脆不再使用
+void change_element_num( element_type ElementType , int num ) ;
 
 char* get_file_name( key_type KeyType ) ; // 将element_type转化成文件名,是new出来的
 
@@ -154,13 +154,11 @@ public:
     void get_block( key_type KeyType , int offset ) ; // 读入block
     void put_block( key_type KeyType , int offset ) ; // 放回block
 
-    void add_block( key_type KeyType ) ;
-
 };
 
 int get_finance_times() ;
 
-void change_finance_times( int num ) ; // todo 用get_finance_times来代替
+void change_finance_times( int num ) ;
 
 void change_finance( double flux ) ; // 正值为收入，负值为支出
 

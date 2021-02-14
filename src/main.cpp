@@ -12,9 +12,8 @@ int main()
 
 //    freopen( "../../../data_out.txt" , "w" , stdout ) ;
 
-    while (true){
+    while (getline(cin,command_line)){
         try{
-            getline(cin,command_line) ;
             program.get_command(command_line) ;
             program.run_command() ;
         } catch (invalid_argument &x) {

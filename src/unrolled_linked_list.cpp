@@ -8,11 +8,11 @@ List::List(const char *file_name)
     strcpy( filename , file_name ) ;
 }
 
-void List::add_key(element &add_element, pair<int, pair<int, int>> search_pos)
+void List::add_key(element &add_element, pair<bool, pair<int, int>> search_pos)
 {
     block temp_block ;
     temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;
-    if ( search_pos.first != -1 ) cerr << "add_key: existing key" << endl ;
+    if ( search_pos.first == 1 ) cerr << "add_key: existing key" << endl ;
 
     for ( int i = temp_block.length ; i > search_pos.second.second ; i-- ){
         temp_block.data[i] = temp_block.data[i-1] ;
@@ -27,11 +27,10 @@ void List::add_key(element &add_element, pair<int, pair<int, int>> search_pos)
     }
 }
 
-void List::del_key(pair< int , pair<int,int> > search_pos)
+void List::del_key(pair<bool, pair<int, int>> search_pos)
 {
     block temp_block , nxt_block ;
-    temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;  // todo 减少不必要的文件读写
-    if ( search_pos.first == -1 ) cerr << "del_key: not existing key" << endl ;
+    temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;  // todo get_block函数在读取时出现异常
 
     for ( int i = search_pos.second.second ; i < temp_block.length ; i++ ){
         temp_block.data[i] = temp_block.data[i+1] ;
@@ -49,10 +48,10 @@ void List::del_key(pair< int , pair<int,int> > search_pos)
 
 }
 
-pair< int , pair<int, int> > List::search_key(key_type KeyType, element &search_element)
+pair<bool, pair<int, int> > List::search_key(key_type KeyType, element &search_element)
 {
     block temp_block ;
-    temp_block.get_block( KeyType , 0 ) ; // todo search_key改成二分
+    temp_block.get_block( KeyType , 0 ) ; // todo initialize时建立起第一批block
 
     while (true){
         if ( search_element < temp_block || search_element == temp_block || temp_block.down == -1 ) break ;
@@ -60,7 +59,7 @@ pair< int , pair<int, int> > List::search_key(key_type KeyType, element &search_
     }
 
     if ( search_element == temp_block ) {
-        return pair< int , pair<int,int> > ( {temp_block.data[0].offset ,{temp_block.pos,0}} ) ;
+        return pair< bool , pair<int,int> > ( {1,{temp_block.pos,0}} ) ;
     }
 
     if ( search_element < temp_block && temp_block.up != -1 ) {
@@ -71,23 +70,25 @@ pair< int , pair<int, int> > List::search_key(key_type KeyType, element &search_
 
     while ( counter < temp_block.length ){
         if ( search_element == temp_block.data[counter] ){ // 找到目标
-            return pair< int , pair<int,int> > ( {temp_block.data[counter].offset,{temp_block.pos,counter}} ) ;
+            return pair< bool , pair<int,int> > ( {1,{temp_block.pos,counter}} ) ;
         }
         if ( search_element < temp_block.data[counter] ){ // 目标不存在
-            return pair< int , pair<int,int> > ( { -1 , {temp_block.pos,counter} } ) ;
+            return pair< bool , pair<int,int> > ( { 0 , {temp_block.pos,counter} } ) ;
         }
         if ( search_element > temp_block.data[counter] ){
             counter++ ;
         }
     }
 
-    return pair< int , pair<int,int> > ( {-1,{temp_block.pos,counter}} ) ; // 未找到，在其最后一位
+    return pair< bool , pair<int,int> > ( {0,{temp_block.pos,counter}} ) ; // 未找到，在其最后一位
 
 }
 
-int List::get_key(pair< int , pair<int, int>> search_pos)
+int List::get_key(pair<bool, pair<int, int>> search_pos)
 {
-    return search_pos.first ;
+    block temp_block ;
+    temp_block.get_block( getKeyType(filename) , search_pos.second.first ) ;
+    return temp_block.data[search_pos.second.second].offset ;
 }
 
 void List::split_block(key_type KeyType, int offset)
@@ -110,17 +111,18 @@ void List::split_block(key_type KeyType, int offset)
     if ( origin_block.down == -1 ){
         origin_block.down = temp_block.pos ;
         origin_block.put_block(KeyType,origin_block.pos) ;
-        temp_block.add_block(KeyType) ;
+        temp_block.put_block(KeyType,temp_block.pos) ;
     }else{
         nxt_block.get_block(KeyType,origin_block.down) ;
         nxt_block.up = temp_block.pos ;
         temp_block.down = nxt_block.pos ;
         origin_block.down = temp_block.pos ;
         origin_block.put_block(KeyType,origin_block.pos) ;
-        temp_block.add_block(KeyType) ;
+        temp_block.put_block(KeyType,temp_block.pos) ;
         nxt_block.put_block(KeyType,nxt_block.pos) ;
     }
 
+    change_block_num(KeyType,++block_num) ;
 
 }
 
@@ -150,7 +152,7 @@ void List::merge_block(key_type KeyType, int first_block_pos, int second_block_p
 void List::show_key(key_type KeyType, const char *main_key)
 {
     element searched_element( main_key , "" , 0 ) ;
-    pair< int , pair<int,int> > start_pos = search_key(KeyType,searched_element) ;
+    pair< bool , pair<int,int> > start_pos = search_key(KeyType,searched_element) ;
     block temp_block ;
     temp_block.get_block(KeyType,start_pos.second.first) ;
     if ( !temp_block.data[start_pos.second.second].equal_with(searched_element) ){
@@ -160,7 +162,7 @@ void List::show_key(key_type KeyType, const char *main_key)
                 start_pos.second.second = 0 ;
             }else{ cout << endl ; return ;}
         }else{ cout << endl ; return ; }
-    }
+    }// todo 在 complexTest2 2.in 91行输入出现了无端空行
     int start_point = start_pos.second.second , offset ;
     book temp_book ;
     while (true){

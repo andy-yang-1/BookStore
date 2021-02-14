@@ -20,13 +20,13 @@ public:
 
     List( const char *file_name ) ;
 
-    void add_key( element &add_element , pair< int , pair<int,int> > search_pos ) ;
+    void add_key( element &add_element , pair< bool , pair<int,int> > search_pos ) ;
 
-    void del_key( pair< int , pair<int,int> > search_pos ) ;
+    void del_key( pair< bool , pair<int,int> > search_pos ) ;
 
-    pair< int , pair<int,int> > search_key( key_type KeyType , element &search_element ) ; // todo search_pos的三个元素分别是 offset block_pos element_pos
+    pair< bool , pair<int,int> > search_key( key_type KeyType , element &search_element ) ; // 找到返回key所在的位置，没找到返回key应该在的位置 三个元素表示：是否找到、在哪个block、在第几号位
 
-    int get_key( pair< int , pair<int,int> > search_pos ) ; // 将search的结果传入get_key中，返回get_element的offset
+    int get_key( pair< bool , pair<int,int> > search_pos ) ; // 将search的结果传入get_key中，返回get_element的offset
 
     void split_block( key_type KeyType , int offset ) ; // 若要split_block的话，put_block需要在split内完成
 
