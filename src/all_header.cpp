@@ -63,7 +63,6 @@ bool user::operator==(const user &other)
     return ( strcmp( user_id , other.user_id ) == 0 ) ;
 }
 
-
 book::book(){ }
 
 book::book(char *isbn)
@@ -216,6 +215,7 @@ void block::get_block(key_type ElementType, int offset)
     file.seekg( offset * sizeof(block) ) ;
     file.read( reinterpret_cast<char*>(this) , sizeof(block) ) ;
     file.close() ;
+    delete [] file_name ;
 }
 
 void block::put_block(key_type ElementType, int offset)
@@ -226,6 +226,18 @@ void block::put_block(key_type ElementType, int offset)
     file.seekp( offset * sizeof(block) ) ;
     file.write( reinterpret_cast<char*>(this) , sizeof(block) ) ;
     file.close() ;
+    delete [] file_name ;
+}
+
+void block::add_block(key_type KeyType)
+{
+    char *file_name = get_file_name( KeyType ) ;
+    fstream file( file_name , ios::in|ios::out|ios::binary ) ;
+    if ( !file ) cerr << "add_block: fail to open file" << endl ;
+    file.seekp(0,ios::end) ;
+    file.write( reinterpret_cast<char*>(this) , sizeof(block) ) ;
+    file.close() ;
+    delete [] file_name ;
 }
 
 char* get_file_name( key_type KeyType )
@@ -289,47 +301,36 @@ void change_element_num( element_type ElementType , int num )
 
 int add_book(book &add_element)
 {
-    int book_num = get_element_num(BOOK_TYPE) ;
+    int book_num = 0 ;
     fstream book_file(BOOK_FILE,ios::in|ios::out|ios::binary) ;
     if ( !book_file ) cerr << "add_book: fail to open file" << endl ;
-    book_file.seekp( book_num * sizeof(book) ) ;
+    book_file.seekp( 0 , ios::end ) ;
+    book_num = book_file.tellp() / sizeof(book) ;
     book_file.write( reinterpret_cast<char*>(&add_element) , sizeof(book) ) ;
-    change_element_num(BOOK_TYPE , ++book_num ) ;
     book_file.close() ;
-    return book_num - 1 ;
+    return book_num ;
 }
 
 int add_user(user &add_element)
 {
-    int user_num = get_element_num(USER_TYPE) ;
+    int user_num = 0 ;
     fstream user_file(USER_FILE,ios::in|ios::out|ios::binary) ;  // 注意：不带ios::in会覆盖原有文件
     if ( !user_file ) cerr << "add_user: fail to open file" << endl ;
-    user_file.seekp( user_num * sizeof(user) ) ;
+    user_file.seekp( 0 , ios::end ) ;
+    user_num = user_file.tellp() / sizeof(user) ;
     user_file.write( reinterpret_cast<char*>(&add_element) , sizeof(user) ) ;
-    change_element_num( USER_TYPE , ++user_num ) ;
     user_file.close() ;
-    return user_num - 1 ;
+    return user_num ;
 }
 
 int get_block_num( key_type KeyType )
 {
     int block_num = 0 ;
-    fstream core_file(CORE_FILE,ios::in|ios::binary) ;
-    if ( !core_file ) cerr << "get_block_num: fail to open file" << endl ;
-    switch (KeyType){
-
-        case USER_ID_TYPE : core_file.seekg( 2 * sizeof(int) ) ; break ;
-
-        case ISBN_TYPE : core_file.seekg( 3 * sizeof(int) ) ; break ;
-
-        case NAME_TYPE : core_file.seekg( 4 * sizeof(int) ) ; break ;
-
-        case AUTHOR_TYPE : core_file.seekg( 5 * sizeof(int) ) ; break ;
-
-        case KEYWORD_TYPE : core_file.seekg( 6 * sizeof(int) ) ; break ;
-    }
-    core_file.read( reinterpret_cast<char*>(&block_num) , sizeof(int) ) ;
-    core_file.close() ;
+    char *file_name = get_file_name(KeyType) ;
+    fstream file( file_name , ios::in|ios::binary ) ;
+    file.seekg(0,ios::end) ;
+    block_num =  file.tellg() / sizeof(block)  ;
+    delete [] file_name ;
     return block_num ;
 }
 
@@ -377,20 +378,20 @@ void change_finance( double flux )
 {
     fstream finance_file(FINANCE_FILE,ios::in|ios::out|ios::binary) ;
     if (!finance_file) cerr << "change_finance: fail to open file" << endl ;
-    int finance_times = get_finance_times() ;
-    finance_file.seekp(finance_times* sizeof(double)) ;
+    finance_file.seekp( 0 , ios::end ) ;
     finance_file.write( reinterpret_cast<char*>(&flux) , sizeof(double) ) ;
     finance_file.close() ;
-    change_finance_times(++finance_times) ;
 }
 
 void print_finance( int times )
 {
+    fstream finance_file(FINANCE_FILE,ios::in|ios::binary) ;
+    if ( !finance_file ) cerr << "print_finance: fail to open file" << endl ;
+    finance_file.seekg(0,ios::end) ;
     double income = 0 , output = 0 , temp = 0 ;
-    int finance_times = get_finance_times() ;
+    int finance_times = finance_file.tellg() / sizeof(double) ;
     if ( times > finance_times ) throw invalid_argument("print_finance: ask more than record") ;
     if ( times == -1 ) times = finance_times ;
-    fstream finance_file(FINANCE_FILE,ios::in|ios::binary) ;
     for ( int i = finance_times - times ; i < finance_times ; i++ ){
         finance_file.seekg(i* sizeof(double),ios::beg) ;
         finance_file.read( reinterpret_cast<char*>(&temp) , sizeof(double) ) ;
