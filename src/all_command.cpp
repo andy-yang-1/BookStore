@@ -27,6 +27,7 @@ void command::run_command()
     else if ( real_command == "show" ) { this->SHOW() ; }
     else if ( real_command == "buy" ) { this->BUY() ; }
     else if ( real_command == "report" ) { this->REPORT() ; }
+    else if ( real_command == "log" ) { this->LOG() ; }
     else if ( real_command == "exit" || real_command == "quit" ) { exit(0) ; }
     else { throw invalid_argument("run_command: illegal command") ; }
     command_stream.str("") ;
@@ -133,6 +134,7 @@ void command::USERADD()
     user new_user(id,pw,n,p) ;
     id_element.offset = add_user(new_user) ;
     user_list.add_key( id_element , search_pos ) ;
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::REGISTER()
@@ -171,7 +173,7 @@ void command::DELETE()
     if ( search_pos.first == 0 ) throw invalid_argument("delete: no existing user") ;
 
     user_list.del_key(search_pos) ;
-
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::PASSWD()
@@ -200,6 +202,7 @@ void command::PASSWD()
 
     strcpy( temp_user.passwd , n_pw ) ;
     temp_user.put_user(offset) ;
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::SELECT()
@@ -219,6 +222,7 @@ void command::SELECT()
     }
     int offset = book_list.get_key(search_pos) ;
     select_stack[select_stack.size()-1] = offset ;
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::del_name()
@@ -413,6 +417,7 @@ void command::MODIFY()
         if ( author_m ) add_author() ;
         if ( keyword_m ) add_keyword() ;
     }
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::IMPORT()
@@ -427,6 +432,7 @@ void command::IMPORT()
     temp_book.quantity += import_quantity ;
     temp_book.put_book(select_offset()) ;
     change_finance( -all_cost ) ;
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,true) ;
 }
 
 void command::BUY()
@@ -448,6 +454,7 @@ void command::BUY()
     temp_book.put_book(offset) ;
     change_finance( temp_book.price * all_quantity ) ;
     printf( "%.2f\n" , temp_book.price * all_quantity ) ;
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,true) ;
 }
 
 void command::SHOW()
@@ -455,6 +462,7 @@ void command::SHOW()
     check_privilege(1) ;
     if ( !has_more_token() ){
         big_show() ;
+        add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
         return ;
     }
     string line ;
@@ -465,6 +473,7 @@ void command::SHOW()
         int times = -1 ;
         if ( has_more_token() ) command_stream >> times ;
         print_finance(times) ;
+        add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
         return ;
     }
     if ( has_more_token() ) throw invalid_argument("show: too many requests") ;
@@ -477,12 +486,32 @@ void command::SHOW()
 
     List real_list(get_file_name(KeyType)) ;
     real_list.show_key( KeyType , k ) ;
-
+    add_manipulation(user_stack[user_stack.size()-1],command_stream,false) ;
 }
 
 void command::REPORT()
 {
-    throw invalid_argument("not finished yet") ;
+    string line ;
+    if (!has_more_token()) throw invalid_argument("report: need command") ;
+    command_stream >> line ;
+    if ( line == "finance" ){
+        check_privilege(7) ;
+        show_all_finance_log() ;
+    }
+    if ( line == "employee" ){
+        check_privilege(7) ;
+        employee_show() ;
+    }
+    if ( line == "myself" ){
+        check_privilege(3) ;
+        myself_show(user_stack[user_stack.size()-1]) ;
+    }
+}
+
+void command::LOG()
+{
+    check_privilege(7) ;
+    log_show() ;
 }
 
 int get_strip( string line )

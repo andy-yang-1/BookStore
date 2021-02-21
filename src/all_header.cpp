@@ -423,11 +423,11 @@ void file_initialize()
         temp_file.close() ;
         return ;
     }
-    ofstream user_file(USER_FILE,ios::binary) , book_file(BOOK_FILE,ios::binary) , core_file(CORE_FILE,ios::binary) ;
+    ofstream user_file(USER_FILE,ios::binary) , book_file(BOOK_FILE,ios::binary) , core_file(CORE_FILE,ios::binary) , log_file(LOG_FILE,ios::binary) ;
     ofstream user_id_file(USER_ID_FILE,ios::binary) , ISBN_file(ISBN_FILE,ios::binary) ;
     ofstream name_file(NAME_FILE,ios::binary) , author_file(AUTHOR_FILE,ios::binary) ;
     ofstream keyword_file(KEYWORD_FILE,ios::binary) , finance_file(FINANCE_FILE,ios::binary) ;
-    user_file.close() ; book_file.close() ; core_file.close() ; user_id_file.close() ; ISBN_file.close() ;
+    user_file.close() ; book_file.close() ; core_file.close() ; user_id_file.close() ; ISBN_file.close() ; log_file.close() ;
     name_file.close() ; author_file.close() ; keyword_file.close() ; finance_file.close() ;
     data_initialize() ;
 }
@@ -454,3 +454,91 @@ void data_initialize()
     temp_block.put_block(USER_ID_TYPE,0) ;
     core_file.close() ;
 }
+
+void add_manipulation( user working_user , std::stringstream &c_stream , bool f )
+{
+    string temp_string = c_stream.str() ;
+    work_record work(working_user,temp_string,f) ;
+    work.add_work_record() ;
+}
+
+void log_show()
+{
+    fstream log_file(LOG_FILE,ios::in|ios::binary) ;
+    if (!log_file) cerr << "log_show: fail to open file" << endl ;
+    work_record temp ;
+    while ( log_file ){
+        log_file.read( reinterpret_cast<char*>(&temp) , sizeof(work_record) ) ;
+        temp.print_work_record() ;
+    }
+    log_file.close() ;
+}
+
+void employee_show()
+{
+    fstream log_file(LOG_FILE,ios::in|ios::binary) ;
+    if (!log_file) cerr << "employee_show: fail to open file" << endl ;
+    work_record temp ;
+    while ( log_file ){
+        log_file.read( reinterpret_cast<char*>(&temp) , sizeof(work_record) ) ;
+        if ( temp.working_user.privilege >= 3 && temp.finance == false ){
+            temp.print_work_record() ;
+        }
+    }
+    log_file.close() ;
+}
+
+void myself_show( user worker )
+{
+    fstream log_file(LOG_FILE,ios::in|ios::binary) ;
+    if (!log_file) cerr << "myself_show: fail to open file" << endl ;
+    work_record temp ;
+    while (log_file){
+        log_file.read( reinterpret_cast<char*>(&temp) , sizeof(work_record) ) ;
+        if ( temp.working_user == worker ){
+            temp.print_work_record() ;
+        }
+    }
+    log_file.close() ;
+}
+
+void show_all_finance_log()
+{
+    fstream log_file(LOG_FILE,ios::in|ios::binary) ;
+    if (!log_file) cerr << "show_all_finance_log: fail to open file" << endl ;
+    work_record temp ;
+    while (log_file){
+        log_file.read( reinterpret_cast<char*>(&temp) , sizeof(work_record) ) ;
+        if (temp.finance){
+            temp.print_work_record() ;
+        }
+    }
+    log_file.close() ;
+}
+
+work_record::work_record() {}
+
+work_record::work_record(user u, std::string m,bool f)
+{
+    working_user = u ;
+    for ( int i = 0 ; i < m.length() ; i++ ){
+        manipulation[i] = m[i] ;
+    }
+    finance = f ;
+}
+
+void work_record::add_work_record()
+{
+    fstream log_file(LOG_FILE,ios::in|ios::out|ios::binary) ;
+    if ( !log_file ) cerr << "add_work_record: fail to open file" << endl ;
+    log_file.seekp(0,ios::end) ;
+    log_file.write( reinterpret_cast<char*>(this) , sizeof(work_record) ) ;
+    log_file.close() ;
+}
+
+void work_record::print_work_record()
+{
+    cout << working_user.user_id << ":\t" << manipulation << endl ;
+}
+
+

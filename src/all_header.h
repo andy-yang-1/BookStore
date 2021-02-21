@@ -12,6 +12,7 @@
 #define KEYWORD_FILE "keyword_file.dat"
 #define FINANCE_FILE "finance_file.dat"
 #define CORE_FILE "core_file.dat"
+#define LOG_FILE "log_file.dat"
 #define BLOCK_SIZE 320 
 #define MERGE_LIMIT 160 
 
@@ -105,6 +106,26 @@ public:
     bool has_keyword() ;
 };
 
+class work_record
+{
+public:
+
+    user working_user ;
+    char manipulation[200] = {0};
+    bool finance = 0 ;
+
+public:
+
+    work_record() ;
+
+    work_record( user u , std::string m , bool f ) ;
+
+    void add_work_record() ;
+
+    void print_work_record() ;
+
+};
+
 
 class block ;
 
@@ -173,5 +194,15 @@ int add_user( user &add_element ) ; // 返回offset
 void file_initialize() ;
 
 void data_initialize() ;
+
+void add_manipulation( user working_user , std::stringstream &c_stream , bool f ) ;
+
+void log_show() ;
+
+void employee_show() ;
+
+void myself_show( user worker ) ;
+
+void show_all_finance_log() ;
 
 #endif //BOOKSTORE_2021_MAIN_ALL_HEADER_H

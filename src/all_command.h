@@ -75,6 +75,8 @@ public:
 
     void REPORT() ;
 
+    void LOG() ;
+
 };
 
 int get_strip( string line ) ;
